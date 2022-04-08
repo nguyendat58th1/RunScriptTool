@@ -53,30 +53,41 @@ namespace RunScriptTool
 
 		private string RunScripts(string filePath)
 		{
-			string[] fileContent = File.ReadAllLines(filePath, Encoding.UTF8);
-			string sql = GetScript(fileContent);
-			using (OracleConnection objConn = new OracleConnection(m_ConnString))
+			string fileContent = File.ReadAllText(filePath, Encoding.UTF8);
+			string[] sql = fileContent.Split(';');
+			for (int i = 0; i < sql.Length; i++)
 			{
-				OracleCommand objCmd = new OracleCommand();
-				objCmd.Connection = objConn;
-				objCmd.CommandText = sql;
-				objCmd.CommandType = CommandType.Text;
-				try
+				if(!string.IsNullOrWhiteSpace(sql[i]))
 				{
-					objConn.Open();
-					objCmd.ExecuteNonQuery();
-				}
-				catch (Exception ex)
-				{
-					return ex.ToString();
+					using (OracleConnection objConn = new OracleConnection(m_ConnString))
+					{
+						objConn.Open();
+						using (var objCmd = new OracleCommand(sql[i], objConn))
+						{
+							try
+							{
+								objCmd.ExecuteNonQuery();
+							}
+							catch (Exception ex)
+							{
+								return ex.ToString();
+							}
+						}
+					}
 				}
 			}
 			return string.Empty;
 		}
 
-		private string GetScript(string[] fileContent)
+		private void btnBrowse_Click(object sender, EventArgs e)
 		{
-			return "CREATE TABLE \"FL_PRINTING_COMPANY_INFO\"(\"SID\" NUMBER(10,0) \"PRINTING_COMPANY_NAME\" VARCHAR2(100 CHAR), \"INVALIDATED\" NUMBER(1,0),\"UPDATE_USER_SID\" NUMBER(8,0),\"ENTRY_DATE\" DATE,	\"UPDATE_DATE\" DATE);";
+			FolderBrowserDialog fbd = new FolderBrowserDialog();
+			fbd.RootFolder = Environment.SpecialFolder.Desktop;
+			fbd.ShowNewFolderButton = false;
+			if(fbd.ShowDialog() == DialogResult.OK)
+			{
+				txtFolder.Text = fbd.SelectedPath;
+			}
 		}
 	}
 }
